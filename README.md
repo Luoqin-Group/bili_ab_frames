@@ -1,2 +1,70 @@
-# bili_ab_frames
-Bilibili 120fps AB alternate‑frame GUI tool，dual‑source interleaved video for member/non‑member different fps playback，FFmpeg &amp; OpenCV。
+# B站120fps AB交替帧合成工具 / Bilibili 120fps AB‑Alternate‑Frame Composer
+
+### 项目介绍
+这是一个基于 Tkinter 的图形化工具，用于生成 B站 AB交替帧视频。输出为120fps（或240fps）视频：
+- 偶数输出帧（0,2,4…）来自素材A，B站会员开启60fps播放时会读取这一组画面；
+- 奇数输出帧（1,3,5…）来自素材B，非会员30fps模式下主要显示这一组画面。
+
+✅ **核心特点**
+1. 不生成中间临时视频，直接通过 rawvideo 管道推送给 FFmpeg，节省磁盘空间；
+2. 使用 ffprobe 读取媒体真实信息，按输出时间轴采样，**不会改变视频速度、不会变速**；
+3. 支持视频、图片作为A/B源；支持循环、保持末帧、黑屏三种短素材补齐策略；
+4. 画面适配模式：拉伸、居中裁剪、黑边填充；
+5. GUI全部任务后台线程运行，UI不会卡死；带调试模式输出ffmpeg/ffprobe原始日志；
+6. 输出标准 H.264 yuv420p MP4，兼容B站上传要求；成品自动校验分辨率、时长。
+
+> ⚠️ 提示：本工具仅做视频合成，**不保证B站一定会解析出差异化播放效果**，最终效果受B站播放器、网页端/客户端版本、平台策略影响。
+
+### 依赖要求
+- Python >=3.8
+- Python库
+```bash
+pip install opencv-python numpy
+```
+- FFmpeg：需要系统环境变量PATH中包含 `ffmpeg` 和 `ffprobe`
+  > Windows: 下载FFmpeg，把bin目录加入系统PATH；
+  > Linux: `apt install ffmpeg`
+  > macOS: `brew install ffmpeg`
+
+### 使用方法
+1. 克隆仓库或者保存脚本 `bili_ab_frames.py`
+2. 安装上面全部依赖，确认命令行可以执行 `ffmpeg -version` 和 `ffprobe -version`
+3. 运行GUI程序
+```bash
+python bili_ab_frames.py
+```
+4. 参数说明
+| 参数 | 说明 |
+|---|---|
+| A视频/图片(会员60fps) | 会员高帧率模式看到的内容 |
+| B视频/图片(非会员30fps) | 非会员模式看到的内容 |
+| 输出mp4 | 合成后保存路径 |
+| 自动分辨率 | 取A、B最大宽高并向上对齐偶数；关闭可手动指定分辨率，宽高必须为偶数 |
+| 输出帧率 | 推荐`120`，也支持240；必须是偶数 |
+| 自动时长 | 使用两个素材中更长的时长+0.5s余量；两个都是图片必须手动填写时长 |
+
+**高级选项：**
+- 画面适配：拉伸铺满 / 裁剪铺满 / 黑边（保持比例）
+- A/B删帧：设置保留原视频奇数或者偶数帧；默认配置已经适配B站方案
+- 结束策略：短素材播放完毕后，保持最后一帧 / 黑屏；勾选循环播放会优先循环短素材
+- CRF：H.264质量，数值越小画质越高，常用16‑22
+- preset：编码速度，`fast`平衡速度与文件体积
+- 调试模式：打印ffprobe/ffmpeg完整原始输出，排查报错使用
+
+5. 点击「开始合成」，等待进度完成，输出MP4即可上传B站。
+
+### 常见问题
+1. **报错找不到ffmpeg/ffprobe**
+> FFmpeg没有安装，或者没有把bin目录加入系统PATH，重启终端/程序后重试。
+
+2. **OpenCV无法打开视频**
+> 部分特殊编码视频opencv解码失败，可以把源视频先转一遍标准H.264 mp4。
+
+3. **合成完B站看不出AB两套画面区别**
+> B站播放器逻辑会随版本变化；建议在本地播放器使用120fps播放成品，验证交替帧是否正常工作。本地验证正常再上传。
+
+4. **宽高报错要求偶数**
+> H.264 yuv420p硬性约束，分辨率宽、高必须是偶数。开启自动分辨率会自动对齐。
+
+### 许可证
+MIT
